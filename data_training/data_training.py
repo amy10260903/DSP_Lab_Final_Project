@@ -34,7 +34,7 @@ else:
 
 spectrogram = fp.Spectrogram(data_mono)
 local_max_info = fp.Local_Maxima(spectrogram)
-
+fingerprints = fp.Hashing(local_max_info)
 ############################################################
 
 #time = np.arange(data.shape[1]) / RATE

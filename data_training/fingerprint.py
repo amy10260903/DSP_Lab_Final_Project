@@ -39,9 +39,9 @@ def Spectrogram(data_mono):
 
 def Local_Maxima(spectrogram):
     
-    # Minimum amplitude in spectrogram to be considered a peak.
+    # Minimum amplitude in spectrogram to be considered a peak
     AMPLITUDE_MIN = 10
-    # Number of cells around a peak to be considered a spectral peak.
+    # Number of cells around a peak to be considered a spectral peak
     NEIGHBORHOOD_SIZE = 20
     
     struct = generate_binary_structure(2, 1)
@@ -56,7 +56,7 @@ def Local_Maxima(spectrogram):
                                        structure=neighborhood,
                                        border_value=1)
     
-    peaks = local_max - eroded_background
+    peaks = local_max ^ eroded_background
     
     amplitudes = spectrogram[peaks]
     j, i = np.where(peaks)
@@ -70,7 +70,7 @@ def Local_Maxima(spectrogram):
     frequency = [x[1] for x in peaks_filtered]
     
     fig, ax = plt.subplots()
-#    ax.imshow(spectrogram)
+    ax.imshow(spectrogram)
     ax.scatter(time, frequency)
     ax.set_xlabel('Time')
     ax.set_ylabel('Frequency')
@@ -84,8 +84,16 @@ def Local_Maxima(spectrogram):
 
 def Hashing(local_maxima_info):
     
+    # Degree to which a fingerprint can be paired with its neighbors
     FAN_VALUE = 15
+    # If True, will sort peaks temporally for fingerprinting
     PEAK_SORT = True
+    # Thresholds on how close or far fingerprints can be in time
+    # to be paired as a fingerprint
+    MIN_HASH_TIME_DELTA = 0
+    MAX_HASH_TIME_DELTA = 200
+    # Number of bits to throw away from the front of the SHA1 hash
+    FINGERPRINT_REDUCTION = 20
     
     """
     Hash list structure:
@@ -96,18 +104,19 @@ def Hashing(local_maxima_info):
     if PEAK_SORT:
         local_maxima_info.sort(key=itemgetter(1))
 
-    for i in range(len(peaks)):
-        for j in range(1, fan_value):
-            if (i + j) < len(peaks):
+    for i in range(len(local_maxima_info)):
+        for j in range(1, FAN_VALUE):
+            if (i + j) < len(local_maxima_info):
                 
-                freq1 = peaks[i][IDX_FREQ_I]
-                freq2 = peaks[i + j][IDX_FREQ_I]
-                t1 = peaks[i][IDX_TIME_J]
-                t2 = peaks[i + j][IDX_TIME_J]
+                freq1 = local_maxima_info[i][0]
+                freq2 = local_maxima_info[i + j][0]
+                t1 = local_maxima_info[i][1]
+                t2 = local_maxima_info[i + j][1]
                 t_delta = t2 - t1
 
                 if t_delta >= MIN_HASH_TIME_DELTA and t_delta <= MAX_HASH_TIME_DELTA:
                     h = hashlib.sha1(
-                        "%s|%s|%s" % (str(freq1), str(freq2), str(t_delta)))
+                        "%s|%s|%s" % (str(freq1), str(freq2), str(t_delta))
+                        )
                     yield (h.hexdigest()[0:FINGERPRINT_REDUCTION], t1)
     return
